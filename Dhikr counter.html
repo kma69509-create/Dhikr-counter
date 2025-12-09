@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>سورة الإخلاص - Dhikr Counter</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0d9488 0%, #065f46 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+
+        /* Container entrance */
+        .container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            transform: translateY(30px);
+            opacity: 0;
+            animation: slideUp 600ms cubic-bezier(.2, .9, .2, 1) 300ms forwards;
+        }
+
+        .locked {
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0d9488 0%, #065f46 100%);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            color: white;
+            padding: 20px;
+        }
+
+        .locked.active {
+            display: flex;
+            animation: lockIn 420ms cubic-bezier(.2, .9, .2, 1) forwards;
+        }
+
+        .locked.exiting {
+            animation: lockOut 420ms cubic-bezier(.2, .9, .2, 1) forwards;
+        }
+
+        .islamic-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255, 255, 255, .1) 35px, rgba(255, 255, 255, .1) 70px);
+            animation: slowRotate 20s linear infinite;
+            transform-origin: 50% 50%;
+        }
+
+        h1 {
+            color: #0d9488;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .bismillah {
+            color: #065f46;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .surah-text {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            padding: 25px;
+            border-radius: 20px;
+            margin: 30px 0;
+            font-size: 20px;
+            line-height: 2;
+            color: #065f46;
+            border: 3px solid #10b981;
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.2);
+            transform-origin: center;
+            animation: popIn 450ms cubic-bezier(.2, .9, .2, 1) 450ms both;
+        }
+
+        .circle-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 30px auto;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+            transition: transform 700ms cubic-bezier(.2, .9, .2, 1);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 300ms ease, stroke 300ms ease;
+            transform-origin: 50% 50%;
+        }
+
+        /* rotate the ring slowly while locked */
+        .locked .progress-ring {
+            animation: ringRotate 6s linear infinite;
+        }
+
+        .counter-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 20px;
+            overflow: visible;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .counter-circle:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        /* ripple pseudo-element */
+        .counter-circle::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0.18;
+            background: rgba(255, 255, 255, 0.9);
+            pointer-events: none;
+        }
+
+        .counter-circle.ripple::after {
+            animation: ripple 600ms ease-out;
+        }
+
+        .surah-in-circle {
+            font-size: 15px;
+            color: white;
+            line-height: 1.8;
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 500;
+            opacity: 0.95;
+        }
+
+        .counter-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+            margin-top: 5px;
+        }
+
+        .counter-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 3px;
+        }
+
+        .target {
+            font-size: 20px;
+            color: white;
+            margin-top: 10px;
+            font-weight: 600;
+            opacity: 0.95;
+            transform: translateY(8px);
+            animation: floatUp 900ms ease 200ms both;
+        }
+
+        .settings {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #d1fae5;
+        }
+
+        .settings label {
+            display: block;
+            margin-bottom: 10px;
+            color: #065f46;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .count-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .count-btn {
+            padding: 10px 20px;
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            color: #065f46;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 200ms ease;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .count-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 18px rgba(16, 185, 129, 0.12);
+        }
+
+        .count-btn.active {
+            background: #10b981;
+            color: white;
+            transform: translateY(-6px) scale(1.02);
+        }
+
+        .count-btn:active {
+            transform: scale(0.95);
+        }
+
+        .custom-input {
+            width: 100px;
+            padding: 10px;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            font-size: 18px;
+            text-align: center;
+            margin: 0 10px;
+        }
+
+        .start-button {
+            margin-top: 20px;
+            padding: 15px 50px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+            transition: transform 200ms ease, box-shadow 200ms ease;
+        }
+
+        .start-button:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 14px 36px rgba(16, 185, 129, 0.22);
+        }
+
+        .start-button:active {
+            transform: scale(0.95);
+        }
+
+        .instruction {
+            margin-top: 20px;
+            color: #059669;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .reminder-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #d1fae5;
+            border-radius: 15px;
+            border: 2px solid #10b981;
+            transform-origin: center;
+            animation: popIn 450ms cubic-bezier(.2, .9, .2, 1) 600ms both;
+        }
+
+        .reminder-section h3 {
+            color: #065f46;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .time-input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .time-input {
+            padding: 10px;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            width: 150px;
+        }
+
+        .add-reminder-btn {
+            padding: 10px 25px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 150ms ease;
+        }
+
+        .add-reminder-btn:active {
+            transform: scale(0.96);
+        }
+
+        .reminders-list {
+            margin-top: 15px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .reminder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #10b981;
+            transform: translateY(12px);
+            opacity: 0;
+        }
+
+        .reminder-item.show {
+            animation: fadeInUp 420ms cubic-bezier(.2, .9, .2, 1) forwards;
+        }
+
+        .delete-reminder {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .permission-note {
+            font-size: 12px;
+            color: #059669;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .complete-message {
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+            margin-top: 20px;
+            animation: popIn 350ms ease both;
+        }
+
+        .lock-header {
+            font-size: 22px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            opacity: 0.98;
+        }
+
+        /* Entry Page */
+        #entry-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #282c34;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+            animation: fadeOut 2s ease forwards;
+            animation-delay: 3s;
+            /* stays visible for 3s */
+        }
+
+        #entry-page h1 {
+            font-size: 3em;
+            animation: zoomIn 2s ease forwards;
+        }
+
+        /* Main Content */
+        #main-content {
+            display: none;
+            padding: 40px;
+            text-align: center;
+        }
+
+        /* Animations */
+        @keyframes zoomIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(.96) translateY(6px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes ripple {
+            from {
+                transform: translate(-50%, -50%) scale(0.2);
+                opacity: 0.7;
+            }
+
+            to {
+                transform: translate(-50%, -50%) scale(4.2);
+                opacity: 0;
+            }
+        }
+
+        @keyframes ringRotate {
+            from {
+                transform: rotate(-90deg);
+            }
+
+            to {
+                transform: rotate(270deg);
+            }
+        }
+
+        @keyframes slowRotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(12px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lockIn {
+            from {
+                transform: translateY(-20px) scale(.98);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lockOut {
+            from {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateY(-20px) scale(.98);
+                opacity: 0;
+            }
+        }
+
+        @keyframes floatUp {
+            from {
+                transform: translateY(12px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 500ms ease forwards;
+        }
+
+        .complete-burst {
+            animation: completeBurst 800ms cubic-bezier(.2, .9, .2, 1) both;
+        }
+
+        @keyframes completeBurst {
+            0% {
+                transform: scale(0.92);
+                opacity: 0;
+            }
+
+            40% {
+                transform: scale(1.06);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Transition: lock screen -> home content */
+        .fade-to-home {
+            animation: fadeOutToHome 700ms ease both;
+        }
+
+        .home-fade-in {
+            animation: fadeInHome 700ms ease both;
+        }
+
+        @keyframes fadeOutToHome {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-12px);
+                visibility: hidden;
+            }
+        }
+
+        @keyframes fadeInHome {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* small responsive tweaks */
+        @media (max-width:420px) {
+            .container {
+                padding: 24px
+            }
+
+            .surah-text {
+                font-size: 18px
+            }
+
+            .counter-display {
+                font-size: 42px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+    <div class="locked" id="lockScreen">
+        <div class="islamic-pattern"></div>
+        <div class="lock-header">أكمل الذكر / Complete your dhikr</div>
+
+        <div class="circle-container">
+            <svg class="progress-ring" width="250" height="250">
+                <circle class="progress-ring-circle" stroke="rgba(255,255,255,0.3)" stroke-width="12" fill="transparent"
+                    r="110" cx="125" cy="125" />
+                <circle id="progressCircle" class="progress-ring-circle" stroke="white" stroke-width="12"
+                    fill="transparent" r="110" cx="125" cy="125" stroke-dasharray="691" stroke-dashoffset="691"
+                    stroke-linecap="round" />
+            </svg>
+            <div class="counter-circle" id="lockTapButton">
+                <div class="surah-in-circle">
+                    قُلْ هُوَ اللَّهُ أَحَدٌ<br>
+                    اللَّهُ الصَّمَدُ<br>
+                    لَمْ يَلِدْ وَلَمْ يُولَدْ<br>
+                    وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ
+                </div>
+                <div class="counter-display" id="lockCounter">0</div>
+                <div class="counter-label">اضغط / TAP</div>
+            </div>
+        </div>
+
+        <div class="target">من / of <span id="lockTarget">10</span></div>
+        <div id="completeMessage" class="complete-message" style="display: none;">
+            ✓ بارك الله فيك<br>May Allah bless you
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <h1>سورة الإخلاص</h1>
+        <p class="bismillah">Surah Al-Ikhlas</p>
+
+        <div class="surah-text">
+            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<br><br>
+            قُلْ هُوَ اللَّهُ أَحَدٌ<br>
+            اللَّهُ الصَّمَدُ<br>
+            لَمْ يَلِدْ وَلَمْ يُولَدْ<br>
+            وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ
+        </div>
+
+        <div class="settings">
+            <label>اختر عدد المرات / Choose count:</label>
+            <div class="count-options">
+                <button class="count-btn active" data-count="10">10</button>
+                <button class="count-btn" data-count="33">33</button>
+                <button class="count-btn" data-count="100">100</button>
+            </div>
+            <div>
+                <label>أو أدخل عدد مخصص / Or custom:</label>
+                <input type="number" id="customInput" class="custom-input" placeholder="عدد" min="1" max="1000">
+            </div>
+            <button class="start-button" id="startButton">🕌 ابدأ الذكر / START</button>
+        </div>
+
+        <p class="instruction">
+            سيتم قفل الشاشة حتى تكمل الذكر 🤲<br>
+            Screen will lock until you complete the dhikr
+        </p>
+
+        <div class="reminder-section">
+            <h3>⏰ تذكير يومي / Daily Reminders</h3>
+            <div class="time-input-group">
+                <input type="time" id="reminderTime" class="time-input" value="09:00">
+                <button class="add-reminder-btn" id="addReminderBtn">➕ إضافة / Add</button>
+            </div>
+            <div id="remindersList" class="reminders-list"></div>
+            <p class="permission-note">
+                💡 سيتم طلب إذن الإشعارات عند إضافة التذكير<br>
+                Notification permission will be requested
+            </p>
+        </div>
+    </div>
+    <script>
+        let count = 0;
+        let target = 10;
+        let isLocked = false;
+        const circumference = 2 * Math.PI * 110;
+        let reminders = JSON.parse(localStorage.getItem('dhikrReminders') || '[]');
+
+        const lockScreen = document.getElementById('lockScreen');
+        const lockCounter = document.getElementById('lockCounter');
+        const lockTarget = document.getElementById('lockTarget');
+        const lockTapButton = document.getElementById('lockTapButton');
+        const progressCircle = document.getElementById('progressCircle');
+        const completeMessage = document.getElementById('completeMessage');
+        const mainContainer = document.getElementById('mainContainer');
+        const customInput = document.getElementById('customInput');
+        const startButton = document.getElementById('startButton');
+        const countButtons = document.querySelectorAll('.count-btn');
+        const addReminderBtn = document.getElementById('addReminderBtn');
+        const reminderTime = document.getElementById('reminderTime');
+        const remindersList = document.getElementById('remindersList');
+
+        progressCircle.style.strokeDasharray = circumference;
+        progressCircle.style.strokeDashoffset = circumference;
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Load and display reminders
+        displayReminders();
+        checkReminders();
+        setInterval(checkReminders, 60000); // Check every minute
+
+        countButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                countButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                customInput.value = '';
+            });
+        });
+
+        addReminderBtn.addEventListener('click', addReminder);
+        startButton.addEventListener('click', startDhikr);
+        lockTapButton.addEventListener('click', incrementCounter);
+        // Prevent the browser from selecting text when user taps/clicks rapidly on the counter
+        if (lockTapButton) {
+            // Preferred: pointerdown prevents selection across input types
+            lockTapButton.addEventListener('pointerdown', function (e) {
+                // allow the click handler to run but prevent default selection/drag
+                e.preventDefault();
+            });
+            // Also catch touchstart/mousedown for broader compatibility
+            lockTapButton.addEventListener('touchstart', function (e) { e.preventDefault(); }, { passive: false });
+            lockTapButton.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            // For older browsers, block selectstart
+            lockTapButton.addEventListener('selectstart', function (e) { e.preventDefault(); });
+            // disable programmatic selection via onselectstart
+            lockTapButton.onselectstart = function () { return false; };
+        }
+
+        function addReminder() {
+            const time = reminderTime.value;
+            if (!time) {
+                alert('الرجاء اختيار وقت / Please select a time');
+                return;
+            }
+
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        reminders.push(time);
+                        localStorage.setItem('dhikrReminders', JSON.stringify(reminders));
+                        displayReminders();
+                        alert('✅ تم إضافة التذكير / Reminder added!');
+                    } else {
+                        alert('⚠️ يجب السماح بالإشعارات / Please allow notifications');
+                    }
+                });
+            } else {
+                alert('⚠️ المتصفح لا يدعم الإشعارات / Notifications not supported');
+            }
+        }
+
+        function displayReminders() {
+            remindersList.innerHTML = '';
+            reminders.forEach((time, index) => {
+                const item = document.createElement('div');
+                item.className = 'reminder-item';
+                item.innerHTML = `
+                    <span>⏰ ${time}</span>
+                    <button class="delete-reminder" onclick="deleteReminder(${index})">حذف / Delete</button>
+                `;
+                remindersList.appendChild(item);
+                // small staggered reveal
+                requestAnimationFrame(() => {
+                    setTimeout(() => item.classList.add('show'), index * 80);
+                });
+            });
+        }
+
+        window.deleteReminder = function (index) {
+            reminders.splice(index, 1);
+            localStorage.setItem('dhikrReminders', JSON.stringify(reminders));
+            displayReminders();
+        }
+
+        function checkReminders() {
+            const now = new Date();
+            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            reminders.forEach(reminderTime => {
+                if (currentTime === reminderTime) {
+                    showNotification();
+                }
+            });
+        }
+
+        function showNotification() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('🕌 وقت الذكر / Dhikr Time', {
+                    body: 'حان وقت قراءة سورة الإخلاص\nTime to recite Surah Al-Ikhlas',
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%2300A6FF"/%3E%3Ctext x="50" y="65" font-size="50" text-anchor="middle" fill="white"%3E🕌%3C/text%3E%3C/svg%3E',
+                    badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%2300A6FF"/%3E%3C/svg%3E',
+                    vibrate: [200, 100, 200],
+                    requireInteraction: true,
+                    tag: 'dhikr-reminder'
+                });
+
+                notification.onclick = function () {
+                    window.focus();
+                    notification.close();
+                };
+            }
+        }
+
+        function startDhikr() {
+            const customValue = parseInt(customInput.value);
+            if (customValue && customValue > 0) {
+                target = customValue;
+            } else {
+                const activeBtn = document.querySelector('.count-btn.active');
+                target = parseInt(activeBtn.dataset.count);
+            }
+
+            count = 0;
+            lockCounter.textContent = count;
+            lockTarget.textContent = target;
+            completeMessage.style.display = 'none';
+            updateProgress();
+
+            lockScreen.classList.remove('exiting');
+            lockScreen.classList.add('active');
+            isLocked = true;
+
+            // small UI hint animation: pulse the circle when locked
+            lockTapButton.classList.add('pulse');
+            setTimeout(() => lockTapButton.classList.remove('pulse'), 800);
+
+            if (document.body.requestFullscreen) {
+                document.body.requestFullscreen();
+            } else if (document.body.webkitRequestFullscreen) {
+                document.body.webkitRequestFullscreen();
+            }
+        }
+
+        function incrementCounter() {
+            if (!isLocked) return;
+
+            // add ripple animation
+            lockTapButton.classList.add('ripple');
+            setTimeout(() => lockTapButton.classList.remove('ripple'), 700);
+
+            count++;
+            lockCounter.textContent = count;
+            updateProgress();
+
+            lockTapButton.style.transform = 'translate(-50%, -50%) scale(0.95)';
+            setTimeout(() => {
+                lockTapButton.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 100);
+
+            // small glow as progress moves
+            progressGlow(count / target);
+
+            if (count >= target) {
+                completeDhikr();
+            }
+        }
+
+        function updateProgress() {
+            const percentage = count / target;
+            const offset = circumference - (percentage * circumference);
+            progressCircle.style.strokeDashoffset = offset;
+        }
+
+        function progressGlow(ratio) {
+            // change stroke color slightly as user approaches completion
+            if (ratio > .8) {
+                progressCircle.style.stroke = '#fef3c7'; // warm when almost done
+            } else if (ratio > .5) {
+                progressCircle.style.stroke = '#bbf7d0';
+            } else {
+                progressCircle.style.stroke = 'white';
+            }
+        }
+
+        function completeDhikr() {
+            isLocked = false;
+            completeMessage.style.display = 'block';
+            completeMessage.classList.add('complete-burst');
+            lockTapButton.style.cursor = 'default';
+
+            // friendly confetti-like dots using small DOM elements (lightweight)
+            createCompletionDots();
+
+            // animate: fade the lock screen away and fade the main home container in
+            try {
+                // ensure main container runs its fade-in animation
+                if (mainContainer) {
+                    mainContainer.classList.add('home-fade-in');
+                }
+
+                // start lock screen fade-out
+                if (lockScreen) {
+                    lockScreen.classList.add('fade-to-home');
+
+                    // when animation ends, clean up and exit fullscreen
+                    const onAnim = (ev) => {
+                        // only respond once
+                        lockScreen.classList.remove('active', 'fade-to-home');
+                        lockScreen.classList.add('exiting');
+                        lockTapButton.style.cursor = 'pointer';
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            document.webkitExitFullscreen();
+                        }
+                        lockScreen.removeEventListener('animationend', onAnim);
+                        // finally hide after the exit animation
+                        setTimeout(() => {
+                            lockScreen.style.display = 'none';
+                            lockScreen.classList.remove('exiting');
+                        }, 420);
+                    };
+                    lockScreen.addEventListener('animationend', onAnim);
+
+                    // safety fallback in case animationend doesn't fire
+                    setTimeout(() => {
+                        if (lockScreen && lockScreen.style.display !== 'none') {
+                            lockScreen.style.display = 'none';
+                            lockTapButton.style.cursor = 'pointer';
+                        }
+                    }, 1400);
+                }
+            } catch (err) {
+                // if anything goes wrong, fallback to original behavior
+                lockScreen.classList.remove('active');
+                lockScreen.classList.add('exiting');
+                lockTapButton.style.cursor = 'pointer';
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        function createCompletionDots() {
+            // create a few small dots that animate outward then remove
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '50%';
+            container.style.top = '28%';
+            container.style.width = '1px';
+            container.style.height = '1px';
+            container.style.pointerEvents = 'none';
+            lockScreen.appendChild(container);
+
+            for (let i = 0; i < 8; i++) {
+                const d = document.createElement('div');
+                d.style.position = 'absolute';
+                d.style.width = '10px';
+                d.style.height = '10px';
+                d.style.borderRadius = '50%';
+                d.style.background = 'rgba(255,255,255,0.9)';
+                d.style.left = '0px';
+                d.style.top = '0px';
+                d.style.transform = 'translate(-50%,-50%) scale(0.6)';
+                d.style.opacity = '0';
+                container.appendChild(d);
+                (function (dot, idx) {
+                    setTimeout(() => {
+                        dot.style.transition = 'transform 700ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease';
+                        const angle = (idx / 8) * Math.PI * 2;
+                        const dist = 70 + Math.random() * 40;
+                        dot.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px) scale(1)`;
+                        dot.style.opacity = '1';
+                        setTimeout(() => { dot.style.opacity = '0'; }, 700);
+                    }, idx * 40);
+                })(d, i);
+            }
+            // remove after animation
+            setTimeout(() => container.remove(), 1200);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (isLocked && e.key === 'Escape') {
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+            if (isLocked) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+
+</html>
